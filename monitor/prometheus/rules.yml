@@ -1,0 +1,56 @@
+groups:
+- name: node_alerts
+  rules:
+  - alert: HighCPUWarning
+    expr: (100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80 and (100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) <= 90
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU Usage Warning on {{ $labels.instance }}"
+      description: "CPU usage is {{ printf \"%.1f\" $value }}% (threshold: 80%) on instance {{ $labels.instance }}. Please investigate high CPU consuming processes."
+      
+  - alert: HighCPUCritical
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "CRITICAL: High CPU Usage on {{ $labels.instance }}"
+      description: "CPU usage is {{ printf \"%.1f\" $value }}% (threshold: 90%) on instance {{ $labels.instance }}. Immediate action required to prevent system overload."
+      
+  - alert: HighMemoryWarning
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 80 and (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 <= 90
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Memory Usage Warning on {{ $labels.instance }}"
+      description: "Memory usage is {{ printf \"%.1f\" $value }}% (threshold: 80%) on instance {{ $labels.instance }}. Consider investigating memory-intensive processes."
+      
+  - alert: HighMemoryCritical
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "CRITICAL: High Memory Usage on {{ $labels.instance }}"
+      description: "Memory usage is {{ printf \"%.1f\" $value }}% (threshold: 90%) on instance {{ $labels.instance }}. Critical memory shortage - immediate intervention required."
+      
+  - alert: HighDiskUsageWarning
+    expr: (node_filesystem_size_bytes{fstype=~"ext4|xfs"} - node_filesystem_free_bytes{fstype=~"ext4|xfs"}) / node_filesystem_size_bytes{fstype=~"ext4|xfs"} * 100 > 85 and (node_filesystem_size_bytes{fstype=~"ext4|xfs"} - node_filesystem_free_bytes{fstype=~"ext4|xfs"}) / node_filesystem_size_bytes{fstype=~"ext4|xfs"} * 100 <= 90
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Disk Usage Warning on {{ $labels.instance }}"
+      description: "Disk usage is {{ printf \"%.1f\" $value }}% (threshold: 85%) on mount {{ $labels.mountpoint }} of instance {{ $labels.instance }}. Consider cleanup or disk expansion."
+      
+  - alert: HighDiskUsageCritical
+    expr: (node_filesystem_size_bytes{fstype=~"ext4|xfs"} - node_filesystem_free_bytes{fstype=~"ext4|xfs"}) / node_filesystem_size_bytes{fstype=~"ext4|xfs"} * 100 > 90
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "CRITICAL: High Disk Usage on {{ $labels.instance }}"
+      description: "Disk usage is {{ printf \"%.1f\" $value }}% (threshold: 90%) on mount {{ $labels.mountpoint }} of instance {{ $labels.instance }}. Disk almost full - immediate cleanup required."

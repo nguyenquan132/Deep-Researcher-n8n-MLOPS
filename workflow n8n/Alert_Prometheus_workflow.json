@@ -1,0 +1,327 @@
+{
+  "name": "Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alertmanager",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d9908fc4-b08a-49f7-8d5a-0d6c34d594d4",
+      "name": "Webhook",
+      "webhookId": "a1734e17-bf6e-4a7b-b059-abf10f0b03e3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const alerts = items[0].json.body.alerts || [];\n\nreturn alerts.map(alert => {\n  const startsAt = new Date(alert.startsAt);\n  const endsAt = new Date(alert.endsAt);\n  const hour = (endsAt.getUTCHours() + 7) % 24;\n  const isBusinessHours = hour >= 9 && hour < 17; // 9 AM–5 PM UTC\n  const durationMinutes = (endsAt - startsAt) / 1000 / 60; // Duration in minutes\n\n  return {\n    json: {\n      status: alert.status, // firing or resolved\n      alertname: alert.labels.alertname, // e.g., HighCPU\n      severity: alert.labels.severity, // e.g., critical\n      instance: alert.labels.instance, // e.g., 47.129.163.27:9100\n      service: alert.labels.service, // e.g., node\n      description: alert.annotations.description, // e.g., CPU usage description\n      startsAt: alert.startsAt, // e.g., 2025-05-25T06:40:29.682Z\n      endsAt: alert.endsAt, // e.g., 2025-05-25T06:42:59.682Z\n      fingerprint: alert.fingerprint, // e.g., 80e7d055dbb50b48\n      durationMinutes: durationMinutes // Duration in minutes\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "b4840587-e96d-4bd1-b46d-3f153fab3089",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "sendTo": "quannguyendinh.221204@gmail.com",
+        "subject": "={{ $json[\"emailSubject\"] }}",
+        "emailType": "text",
+        "message": "={{ $json[\"emailBody\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1380,
+        -260
+      ],
+      "id": "c5143fb4-b798-4cc4-9eb0-8733b263662c",
+      "name": "Gmail",
+      "webhookId": "76f0ea31-5ef7-4226-9ef5-31b4b7168e98",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{ $env.OAUTH2_GMAIL }}",
+          "name": "Gmail account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "\"Analyze the following Prometheus alert to generate a notification email. The context is:\n\n- Alert Name: {{ $node[\"Code\"].json[\"alertname\"] }}\n- Severity: {{ $node[\"Code\"].json[\"severity\"] }}\n- Duration: {{ $node[\"Code\"].json.durationMinutes }} minutes\n- Description: {{ $node[\"Code\"].json[\"description\"] }}\n- Instance: {{ $node[\"Code\"].json[\"instance\"] }}\n\nFrom the description, extract:\n1. Resource type (CPU, Memory, Disk, etc.)\n2. Usage percentage (e.g., 92%)\n\nGenerate an email with:\n1. Professional subject line with appropriate urgency emoji\n2. Clear message body explaining:\n   - The alert details\n   - Resource type and usage percentage\n   - Duration of the issue\n   - Recommended manual intervention steps\n\nReturn only the following JSON object, with no additional text, explanations, or markdown:\n\n{\n  \"emailSubject\": \"Subject line with emoji and urgency level\",\n  \"emailBody\": \"Professional email body explaining the alert, resource type, usage %, duration, and required manual action. Include specific metrics and investigation steps.\",\n  \"severityLevel\": \"critical/warning/info\"\n}\n\nNotes:\n- This is for notification only, no auto-remediation will be performed\n- Keep email professional but urgent when necessary\n- Include specific metrics and timestamps in the email body\n- Always recommend manual intervention\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        780,
+        -260
+      ],
+      "id": "33909313-e167-4188-bceb-ecbc3cd61600",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        760,
+        -60
+      ],
+      "id": "51bf33b1-d8b5-474e-b147-ff4886d33025",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "{{ $env.API_KEY_CHAT_MODEL }}",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4394f1f4-1d00-4439-851b-6bd9ef653626",
+              "leftValue": "={{ $json[\"severity\"] }}",
+              "rightValue": "critical",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        0
+      ],
+      "id": "93653ff3-3b4d-49b7-8a2a-e04f644328e6",
+      "name": "If - Warning or Critical"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the JSON string from AI Agent output\nconst parsedOutput = JSON.parse($input.first().json.output);\n\nreturn [\n  {\n    json: {\n      emailSubject: parsedOutput.emailSubject,\n      emailBody: parsedOutput.emailBody\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        -260
+      ],
+      "id": "8544857d-aa70-4749-95f1-604a02718008",
+      "name": "Code - Format AI Agent results"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1381175687444041783",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1381175687913672706",
+          "mode": "id"
+        },
+        "content": "=🚨 **MONITORING ALERT**\n⚠️ **Level:** WARNING\n📊 **Dashboard:** CHECK GRAFANA\n{{ $json[\"description\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        680,
+        100
+      ],
+      "id": "b6d64341-28cf-4c0b-aaa1-4a6cc982ed59",
+      "name": "Discord",
+      "webhookId": "b1455fb9-9568-4f44-ba34-a07e01a8f69c",
+      "credentials": {
+        "discordBotApi": {
+          "id": "{{ $env.API_KEY_DISCORD }}",
+          "name": "Discord Bot account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "connection": "Upgrade",
+            "host": "n8nmlops.io.vn",
+            "x-real-ip": "172.23.0.3",
+            "x-forwarded-for": "172.23.0.3",
+            "x-forwarded-proto": "http",
+            "content-length": "1131",
+            "user-agent": "Alertmanager/0.28.1",
+            "content-type": "application/json"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "receiver": "n8n-webhook",
+            "status": "resolved",
+            "alerts": [
+              {
+                "status": "resolved",
+                "labels": {
+                  "alertname": "HighCPUCritical",
+                  "instance": "node-exporter:9100",
+                  "severity": "critical"
+                },
+                "annotations": {
+                  "description": "CPU load is > 90%\nVALUE = 0.6000000014901161%\nLABELS: map[instance:node-exporter:9100]",
+                  "summary": "High CPU load critical (instance node-exporter:9100)"
+                },
+                "startsAt": "2025-06-08T08:37:02.835Z",
+                "endsAt": "2025-06-08T08:40:02.835Z",
+                "generatorURL": "http://821a9f74b7be:9090/graph?g0.expr=100+-+%28avg+by+%28instance%29+%28irate%28node_cpu_seconds_total%7Bmode%3D%22idle%22%7D%5B5m%5D%29%29+%2A+100%29+%3E+0.5&g0.tab=1",
+                "fingerprint": "8a9729b3cda68e96"
+              }
+            ],
+            "groupLabels": {
+              "alertname": "HighCPUCritical"
+            },
+            "commonLabels": {
+              "alertname": "HighCPUCritical",
+              "instance": "node-exporter:9100",
+              "severity": "critical"
+            },
+            "commonAnnotations": {
+              "description": "CPU load is > 90%\nVALUE = 0.6000000014901161%\nLABELS: map[instance:node-exporter:9100]",
+              "summary": "High CPU load critical (instance node-exporter:9100)"
+            },
+            "externalURL": "http://290631474dc2:9093",
+            "version": "4",
+            "groupKey": "{}:{alertname=\"HighCPUCritical\"}",
+            "truncatedAlerts": 0
+          },
+          "webhookUrl": "http://n8nmlops.io.vn/webhook/alertmanager",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If - Warning or Critical",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code - Format AI Agent results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Warning or Critical": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format AI Agent results": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4a183edf-e39d-48ea-b4b3-bd3b0df0e60d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c759fe0b46f95c0a378e10e8dd5e060a0fb5cb8b32d0331ace99e3ccf9d70411"
+  },
+  "id": "DPj2O3PrfamGwCYb",
+  "tags": []
+}

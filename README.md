@@ -18,8 +18,6 @@ Bộ **workflow n8n** và **stack giám sát MLOps** trọn gói giúp bạn:
 5. [Cấu hình n8n](#cau-hinh-n8n)
 6. [Triển khai giám sát](#trien-khai-giam-sat)
 7. [Sử dụng Deep‑Researcher](#su-dung-deep-researcher)
-8. [Tuỳ biến & mở rộng](#tuy-bien-mo-rong)
-9. [Đóng góp & giấy phép](#dong-gop-giay-phep)
 
 ---
 
@@ -143,23 +141,6 @@ docker compose up -d --build
    *Lưu ý:* độ sâu/rộng càng lớn thì thời gian & chi phí càng cao.
 3. Sau khi workflow hoàn thành, báo cáo được lưu về Notion database bạn cấu hình trong node *Notion*.
    (Thay truy cập Notion hoặc thay node khác tuỳ mục đích.)
-
----
-
-## Tuỳ biến & mở rộng
-
-* **Đổi LLM** – Thay node *OpenAI Chat* thành claude, gemini… hoặc tự host.
-* **Webhook bảo mật** – Thêm header bí mật trong Alertmanager `config.yml`.
-* **Thêm exporters** – cadvisor, postgres exporter… rồi sửa `prometheus/prometheus.yml`.
-* **CI/CD** – Gắn Actions để tự build & deploy Docker image n8n.
-* **Quan sát** – Import thêm dashboard vào Grafana (ví dụ `node_exporter_full.json`).
-
----
-
-## Đóng góp & giấy phép
-
-* Pull request & issue luôn được chào đón!
-* Mã nguồn theo giấy phép **MIT** (xem `LICENSE`).
 
 ---
 
